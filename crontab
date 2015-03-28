@@ -1,0 +1,36 @@
+HOME=/home/spl0k
+
+GPIO=/usr/local/bin/gpio
+PYTHON=/usr/bin/python
+RRDTOOL=/usr/bin/rrdtool
+
+MAIL_LED_PIN=18
+RSS_LED_PIN=23
+DHT_PIN=24
+BG_CLK_PIN=17
+BG_RST_PIN=27
+
+GRAPH_FOLDER=/home/spl0k/www/dht
+
+# m h  dom mon dow   command
+@reboot $GPIO -g mode $MAIL_LED_PIN output
+@reboot $GPIO -g mode $RSS_LED_PIN output
+@reboot $GPIO -g mode $BG_CLK_PIN output
+@reboot $GPIO -g mode $BG_RST_PIN output
+@reboot sleep 1m && $GPIO load i2c && $PYTHON $HOME/7seg/7seg_init.py -b0
+
+* * 	* * *	$GPIO -g write $MAIL_LED_PIN $($PYTHON $HOME/gmail_unread_count.py $(cat $HOME/gmail_login))
+* * 	* * *	$GPIO -g write $RSS_LED_PIN $($PYTHON $HOME/theoldreader_unread_count.py $(cat $HOME/TheOldReader_api_token))
+
+* *	* * *	$HOME/dht_scripts.sh $DHT_PIN $BG_CLK_PIN $BG_RST_PIN
+
+45 8	* * 1-5	$HOME/blind.sh up
+0 11	* * 6,7 $HOME/blind.sh up
+* 17-22	* * *	$PYTHON $HOME/blind_down_check.py && $HOME/blind.sh down
+
+@daily           $PYTHON $HOME/dht_graph.py $RRDTOOL $HOME/dht.rrd --end now --start n-1day    $GRAPH_FOLDER/daily/$(date     --date=-1day +\%F).png
+0 0 * * 1        $PYTHON $HOME/dht_graph.py $RRDTOOL $HOME/dht.rrd --end now --start n-1week   $GRAPH_FOLDER/weekly/$(date    --date=-1week +\%F)_$(date --date=-1day +\%F).png
+@monthly         $PYTHON $HOME/dht_graph.py $RRDTOOL $HOME/dht.rrd --end now --start n-1month  $GRAPH_FOLDER/monthly/$(date   --date=-1month +\%Y-\%m).png
+0 0 1 1,4,7,10 * $PYTHON $HOME/dht_graph.py $RRDTOOL $HOME/dht.rrd --end now --start n-3months $GRAPH_FOLDER/quarterly/$(date --date=-3months +\%Y)_Q$(($(date --date=-3months +\%-m) / 3 + 1)).png
+@yearly          $PYTHON $HOME/dht_graph.py $RRDTOOL $HOME/dht.rrd --end now --start n-1year   $GRAPH_FOLDER/yearly/$(date    --date=-1year +\%Y).png
+
