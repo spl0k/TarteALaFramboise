@@ -6,7 +6,8 @@ import requests
 def theoldreader_unread_count(token):
 	r = requests.get('https://theoldreader.com/reader/api/0/unread-count',
 		params = { 'output': 'json' },
-		headers = { 'Authorization': 'GoogleLogin auth={}'.format(token) })
+		headers = { 'Authorization': 'GoogleLogin auth={}'.format(token) },
+		timeout = 10)
 	return filter(lambda d: d['id'] == 'user/-/state/com.google/reading-list', r.json['unreadcounts'])[0]['count']
 
 if __name__ == '__main__':

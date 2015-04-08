@@ -1,7 +1,10 @@
 #! env python
 # coding: utf-8
 
+import socket
 import feedparser
+
+socket.setdefaulttimeout(10)
 
 def gmail_unread_count(login, password):
 	res = feedparser.parse("https://{}:{}@mail.google.com/gmail/feed/atom".format(login, password))
